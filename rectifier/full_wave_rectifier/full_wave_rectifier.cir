@@ -1,0 +1,21 @@
+.title KiCad schematic
+.include "C:/Users/ASUS/Desktop/kicad_projects/full_wave_rectifier/Diode_Model.lib"
+.control
+.option reltol=0.01 abstol=0.01 vntol=0.01
+tran 1us 100ms uic
+run
+set color0 = White;
+set color1 = Black;
+plot v(a,b),v(o)
+.endc
+C1 Net-_C1-Pad1_ 0 1000u
+V2 Net-_D1-K_ c DC 0 SIN( 0 0 1k 0 0 0 ) AC 1  
+V4 c o DC 0 SIN( 0 0 1k 0 0 0 ) AC 1  
+R1 o 0 100
+V3 c Net-_C1-Pad1_ DC 0 SIN( 0 0 1k 0 0 0 ) AC 1  
+D3 b 0 D!n4004
+D4 a 0 D!n4004
+D1 Net-_D1-K_ a D!n4004
+D2 Net-_D1-K_ b D!n4004
+V1 b a DC 0 SIN( 0 325 50 0 0 0 ) AC 1  
+.end

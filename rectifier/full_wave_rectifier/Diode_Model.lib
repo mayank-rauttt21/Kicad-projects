@@ -1,0 +1,4 @@
+*spice model for diodes
+
+ .MODEL D!n4004 D (IS=76.9p RS=42.0m BV=400 IBV=5.00u
++ CJO=39.8p  M=0.333 N=1.45 TT=4.32u)
