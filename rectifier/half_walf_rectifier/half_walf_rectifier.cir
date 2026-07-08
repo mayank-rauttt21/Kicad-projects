@@ -1,0 +1,15 @@
+.title KiCad schematic
+.model __D1 D
+.control
+tran 1us 100ms uic
+run
+set color0 = White; 
+set color1 = Black;
+plot V(o),v(a),i(v2)
+.endc
+V1 A 0 DC 0 SIN( 0 325 50 0 0 0 ) AC 1  
+C1 O 0 100u
+R1 O 0 100
+D1 A Net-_D1-K_ __D1
+V2 Net-_D1-K_ O DC 0 SIN( 0 0 1k 0 0 0 ) AC 1  
+.end
