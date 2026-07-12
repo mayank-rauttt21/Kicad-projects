@@ -1,0 +1,30 @@
+.title KiCad schematic
+.include "C:/Users/ASUS/Desktop/kicad_projects/MODEL/luDevice.lib.txt"
+.include "C:/Users/ASUS/Desktop/kicad_projects/linear_power_supply/bjt_models.lib.txt"
+.control
+option reltol=0.01 abstol=0.01 vntol=0.01
+tran 1u 100ms uic
+run
+set color0=White;
+set color1=Black:
+plot v(a,b) v(c) v(o)
+.endc
+R4 y Net-_U1-Vo_ 100
+XU1 Net-_U1-V+_ x Vcc Vee Net-_U1-Vo_ OPAMP
+V3 Net-_Q1-E_ o DC 0 SIN( 0 0 1k 0 0 0 ) AC 1  
+V2 Net-_X1-k_ c DC 0 SIN( 0 0 1k 0 0 0 ) AC 1  
+Q1 c Net-_Q1-B_ Net-_Q1-E_ TIP41
+R1 0 o 100
+R3 o x 30k
+V5 Net-_U1-V+_ 0 DC 2 
+R2 x 0 10k
+V7 0 Vee DC 15 
+V1 a b DC 0 SIN( 0 20 50 0 0 0 ) AC 1  
+X4 0 a diode_pwr
+V6 Vcc 0 DC 15 
+X1 a Net-_X1-k_ diode_pwr
+X2 b Net-_X1-k_ diode_pwr
+X3 0 b diode_pwr
+C1 0 c 1000u
+V4 y Net-_Q1-B_ DC 0 SIN( 0 0 1k 0 0 0 ) AC 1  
+.end
