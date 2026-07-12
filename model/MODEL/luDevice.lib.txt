@@ -1,0 +1,31 @@
+* LIBRARY OF MY CUSTOM COMPONENTS
+* Author : Mayank Raut
+***************************************
+*    Diode
+***************************************
+* Power diode
+.SUBCKT diode_pwr 101 102
+DX 101 102 diode_model
+Csh 101 103 0.01uF
+Rsh 103 102 10k
+.model diode_model D(RS=0.01,CJO=100pF)
+.ENDS
+
+
+****************************************
+*    Op amp 
+****************************************
+*             V+ V- Vcc Vee Vo  
+.SUBCKT OPAMP 1 2 3 4 5
+Bvref nref 0 V=v(1)
+Bvfb nfb 0 V=v(2)
+Bverr nerr 0 V=v(nref)-v(nfb)
+Bic 0 nic i=v(nerr)
+Ccontrol nic 0 1uF
+Bir 0 nir i=v(nerr)
+Rcontrol nir 0 1e6
+Vigain nig 0 10
+BVc nc 0 V=v(nic)*v(nig)+v(nir)
+Blimit 5 0 V=v(nc)<v(4) ? v(4) : (v(nc)>v(3) ? v(3) : v(nc))
+.ENDS
+
