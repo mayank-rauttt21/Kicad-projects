@@ -1,0 +1,178 @@
+* LIBRARY OF MY CUSTOM BLOCKS
+* Department: DESE, Indian Institute of Science, Bangalore
+
+***************************************************************
+* PWM
+***************************************************************
+.SUBCKT PWM_1ph nPin nPout fs=10000
+atri nPin nPtri triout
+.model triout triangle(cntl_array=[0 1] freq_array=[{fs} {fs}] out_low = 0 out_high = 1.0 duty_cycle = 0.5)
+acompare [nPin nPtri] ncout comp_sum
+.model comp_sum summer(in_gain=[1.0 -1.0])
+alim ncout nPout limit_comp
+.model limit_comp limit(gain=1e6 out_lower_limit=0.0 out_upper_limit=1.0 fraction=FALSE)
+.ENDS
+***************************************************************
+*-------------------------------------------------
+.SUBCKT PWMBridge nPin nArm1T nArm1B nArm2T nArm2B fs=10000
+atri1 nPin nPtri1 triout1
+.model triout1 triangle(cntl_array=[0 1] freq_array=[{fs} {fs}] out_low = -1.0 out_high = 1.0 duty_cycle = 0.5)
+ainv nPin nPinv amp
+.model amp gain(gain=-1.0)
+acompare1 [nPin nPtri1] ncout1 comp_sum
+acompare2 [nPtri1 nPinv] ncout2 comp_sum
+.model comp_sum summer(in_gain=[1.0 -1.0])
+alim1 ncout1 nArm1T limit_comp
+alim2 ncout2 nArm1B limit_comp
+alim3 ncout2 nArm2T limit_comp
+alim4 ncout1 nArm2B limit_comp
+.model limit_comp limit(gain=1e6 out_lower_limit=0.0 out_upper_limit=1.0 fraction=FALSE)
+.ENDS
+*$
+*------------------------------------------------------
+*-----------------------------------------------------------------
+* OP AMPs
+*-----------------------------------------------------------------
+* connections:   non-inverting input
+*                | inverting input
+*                | | positive power supply
+*                | | | negative power supply
+*                | | | | output
+*                | | | | |
+.SUBCKT OPAMP    1 2 3 4 5
+*opamp is considered as a compare, with pi controller
+Bvref nref 0 V=v(1)
+Bvfb nfb 0 V=v(2)
+Bverr nerr 0 V=v(nref)-v(nfb)
+Bic 0 nic i=v(nerr)
+Ccontrol nic 0 1uF
+Bir 0 nir i=v(nerr)
+Rcontrol nir 0 1e6
+Vigain nig 0 10
+BVc nc 0 V=v(nic)*v(nig)+v(nir)
+Blimit 5 0 V=v(nc) < v(4) ? v(4) : v(nc) > v(3) ? v(3) : v(nc)
+.ENDS
+*---------------------------------------------------------------------
+*------------------------------------------------------------------------------
+.SUBCKT PID nerr nVc Ki=1 Kp=1 Kd=0 lsat=-1.0 usat=1.0
+aint nerr ni pid_int
+.model pid_int int(gain={Ki} out_lower_limit={lsat} out_upper_limit={usat})
+
+adif nerr nd pid_dif
+.model pid_dif d_dt(gain={Kd} out_lower_limit={lsat} out_upper_limit={usat})
+
+asigma [nerr ni nd] nVsum pid_sum
+.model pid_sum summer(in_gain =[{Kp} 1.0 1.0])
+
+apidlimit nVsum nVc  control_limit
+.model control_limit limit(out_lower_limit={lsat} out_upper_limit={usat})
+.ENDS
+*-------------------------------------------------------------------
+*-----------------------------------------------------------------------
+.SUBCKT sum np nm nout
+asum [np nm] nout sum_err
+.model sum_err summer(in_gain=[1.0 -1.0])
+.ENDS
+*-------------------------------------------
+*-------------------------------------------
+.SUBCKT add np nm nout
+asum [np nm] nout sum_err
+.model sum_err summer(in_gain=[1.0 1.0])
+.ENDS
+*-------------------------------------------
+*-------------------------------------------
+.SUBCKT gain nVi nVo K=1
+again nVi nVo amp
+.model amp gain(gain ={K})
+.ENDS
+*-------------------------------------------
+.SUBCKT limiter nVi nVo k=1 low=0 high=1
+alimit nVi nVo lim
+.model lim limit(in_offset=0 gain={k} out_lower_limit={low}
++ out_upper_limit={high} limit_range=1e-6 fraction=FALSE)
+.ENDS
+*-------------------------------------------
+.SUBCKT filt_ord_I nVi nVo K=1 a=1
+atrfn nVi nVo transferfn
+.model transferfn s_xfer(gain ={K} int_ic=[0 0] num_coeff=[1] den_coeff=[{a} 1])
+.ENDS
+*-----------------------------------------------------------------------------
+.SUBCKT clk nclk fc=10000 duty=0.5 phase=0
+venable nen 0 1
+aclock nen nclkd varclock
+.model varclock d_osc(cntl_array = [0 1]
++                      freq_array = [{fc} {fc}]
++                      duty_cycle = {duty} init_phase={phase})
+adac [nclkd] [nclk] dac_buff
+.model dac_buff dac_bridge(out_low = 0.0 out_high = 1.0)
+.ENDS
+*-----------------------------------------------------------------------
+*              S    R    Q
+.SUBCKT SRFF nset nrst nq
+asat1 nset nsetsat schmitff
+asat2 nrst nrstsat schmitff
+.model schmitff limit(gain=1e6 out_lower_limit=0 out_upper_limit=1.0)
+venable nena 0 1
+a_adc1 [nsetsat] [nsetd] adc_buff
+a_adc2 [nrstsat] [nrstd] adc_buff
+a_adc3 [nena] [nend] adc_buff
+.model adc_buff adc_bridge(in_low = 0.5 in_high = 0.5)
+alatch nsetd nrstd nend "null" "null" nqd nqbar latchsr
+.model latchsr d_srlatch
+adac [nqd] [nq] dac_buff
+.model dac_buff dac_bridge(out_low = 0.0 out_high = 1.0)
+.ENDS
+*-----------------------------------------------------------------------
+*             CLK Q   S    R
+.SUBCKT T_FF nclk nq nset nrst
+asat1 nclk nclksat schmitff
+asat2 nset nsetsat schmitff
+asat3 nrst nrstsat schmitff
+.model schmitff limit(gain=1e6 out_lower_limit=0 out_upper_limit=1.0)
+vtoginput ntoga 0 1
+a_adc1 [nclksat] [nclkd] adc_buff
+a_adc2 [ntoga] [ntogd] adc_buff
+a_adc3 [nsetsat] [nsetd] adc_buff
+a_adc4 [nrstsat] [nrstd] adc_buff
+.model adc_buff adc_bridge(in_low = 0.5 in_high = 0.5)
+atff ntogd nclkd nsetd nrstd nqd nqbar toggleff
+.model toggleff d_tff
+adac [nqd] [nq] dac_buff
+.model dac_buff dac_bridge(out_low = 0.0 out_high = 1.0)
+.ENDS
+*-------------------------------------------
+.SUBCKT EX_OR na nb nq
+asat1 na nasat schmitff
+asat2 nb nbsat schmitff
+.model schmitff limit(gain=1e6 out_lower_limit=0 out_upper_limit=1.0)
+a_adc1 [nasat] [nad] adc_buff
+a_adc2 [nbsat] [nbd] adc_buff
+.model adc_buff adc_bridge(in_low = 0.5 in_high = 0.5)
+axor [nad nbd] nqd xor3
+.model xor3 d_xor(rise_delay = 0.5e-9 fall_delay = 0.3e-9 input_load = 0.5e-12)
+adac [nqd] [nq] dac_buff
+.model dac_buff dac_bridge(out_low = 1.0 out_high = -1.0)
+.ENDS
+.SUBCKT mul nm1 nm2 nout
+amul [nm1 nm2] nout sigmult
+.model sigmult mult(in_offset=[0 0] in_gain=[1.0 1.0] out_gain=1.0 out_offset=0)
+.ENDS
+*-------------------------------------------
+*Resettable integrator
+*-------------------------------------------
+.SUBCKT RINT ni nclk no C=1uF
+G1 no 0 ni 0 {-C}
+C1 no 0 {C}
+R1 no nsw 0.01
+SW1 nsw 0 nclk 0 switch_simple
+.model switch_simple SW(RON=0.001)
+.ENDS
+*--------------------------------------------
+.SUBCKT SAMPLEHOLD ni nclk no 
+E1 nx 0 ni 0 1
+R1 nx nsw 0.01
+SW1 nsw no nclk 0 switch_simple
+C1 no 0 100pF
+.model switch_simple SW(RON=0.001)
+.ENDS
+*--------------------------------------------

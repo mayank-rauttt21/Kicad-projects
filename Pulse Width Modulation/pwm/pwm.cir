@@ -1,0 +1,37 @@
+.title KiCad schematic
+.include "C:/Users/ASUS/Desktop/kicad_projects/pwm/models/luBlocks.lib"
+.control
+option reltol=0.01 abstol=0.01 vntol=0.01
+tran 1us 200us uic
+set color0=White;
+set color1=Black;
+plot v(tup) v(tlo) v(m) v(g1) v(g2)
+.endc
+
+
+R7 ndup Vee 10.1k
+R6 ndlo Vee 10k
+R9 Net-_U4-p_ 0 10k
+R8 tri Net-_U4-p_ 10k
+R4 Vcc ndlo 10.1k
+R5 Vcc ndup 10k
+R10 ndlo Net-_U4-m_ 10k
+R14 tri Net-_U5-p_ 10k
+R13 Net-_U5-m_ tlo 10k
+XU5 Net-_U5-p_ Net-_U5-m_ Vcc Vee tlo OPAMP
+R12 ndup Net-_U5-m_ 10k
+R15 Net-_U5-p_ 0 10k
+V1 Vcc 0 DC 15 
+R1 tri Net-_U1-m_ 10k
+C1 Net-_U2-m_ tri 10nf IC=1
+R3 Net-_U1-m_ Net-_U1-o_ 150k
+XU1 0 Net-_U1-m_ Vee Vcc Net-_U1-o_ OPAMP
+R2 Net-_U1-o_ Net-_U2-m_ 5k
+V2 0 Vee DC 15 
+XU2 0 Net-_U2-m_ Vcc Vee tri OPAMP
+XU4 Net-_U4-p_ Net-_U4-m_ Vcc Vee tup OPAMP
+R11 Net-_U4-m_ tup 10k
+XU3 tlo m Vcc Vee g2 OPAMP
+XU6 m tup Vcc Vee g1 OPAMP
+V4 m 0 DC 0 SIN( 0 0.8 5k 0 0 0 ) AC 1  
+.end

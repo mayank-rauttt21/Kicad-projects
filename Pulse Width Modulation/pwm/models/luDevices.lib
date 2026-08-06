@@ -1,0 +1,117 @@
+* LIBRARY OF MY CUSTOM COMPONENTS
+* Department: L Umanand
+*             DESE, Indian Institute of Science, Bangalore
+
+***************************************************************
+* Diodes
+***************************************************************
+.model diode_def D()
+.model diode_zener  D(bv=6.2)
+****************************************************************
+*Diode macro model
+.SUBCKT diode_pwr 101 102
+DX    101 102   diode_model
+Rsh   102 103   10000.0
+Csh   103 101   0.01uF
+.model  diode_model  D(RS=0.01, CJO=100pF)
+.ENDS
+*
+***************************************************************
+* Switches
+*-------------------------------------------------
+.model switch_simple SW(RON=0.001)
+*-------------------------------------------------
+.SUBCKT  switch_pwr  nSp  nSn  nVcp nVcn
+SW      nSp  nDb  nVcp  0  bidir_sw
+Dblock  nDb  nSn  d_switch
+Dbody   nSn  nSp  d_switch
+.model  bidir_sw  SW( RON=0.001 )
+.model  d_switch  D()
+.ENDS
+**********************************************************************
+*GY
+*       pins  1  2  3  4
+.SUBCKT gy np np0 ns ns0 N=100
+rp1 np nrp 0.1
+rs1 ns nrs 0.1
+rpmid nrp nrpmid 0.1
+rsmid nrs nrsmid 0.1
+BGp1 nrpmid npmid V=(-1)*i(vs1)*{N}
+BGs1 nrsmid nsmid V=i(vp1)*{N}
+vp1 npmid np0 0
+vs1 nsmid ns0 0
+BHs1 nrs nrsmid I=(-1)*v(nrp,np0)/{N}
+BHp1 nrp nrpmid I=v(nrs,ns0)/{N}
+*Uncomment and give 1% permeance value to include leakage effects
+*Clp nrp np0 100nF
+*Cls nrs ns0 100nF
+rsp1 nrp nrs 100e6
+rsm1 np0 ns0 100e6
+.ENDS
+*********************************************************************
+*TF
+*    pins   1  2   3  4
+.SUBCKT tf np np0 ns ns0 N=1
+xGYp np np0 n1 n10 gy N={1}
+xGYs n1 n10 ns ns0 gy N={N}
+.ENDS
+*********************************************************************
+*Electro-Magnetic Transformer with saturation
+*    pins   1  2   3  4
+.SUBCKT tfx np np0 ns ns0 Np=1000 Ns=1000 C=100uF
+xGYp np np0 n1 n10 gy N={Np}
+xGYs n2 n10 ns ns0 gy N={Ns}
+*                IF Vc  < fsat   THEN {Cper} ELSE  {reducing Cper}
+Cper n1 n2 c='v(n1)-v(n2) < {5} ? {C} : {0.99*C*exp(-10*(v(n1)-v(n2)))+0.01*C}'
+.ENDS
+*********************************************************************
+*FORWARD Xfm
+*       pins  1  2  3  4   5  6
+.SUBCKT tffor np np0 nd nd0 ns ns0 Np=100 Nd=100 Ns=100 C=100uF
+xGYp np np0 n1 n10 gy N={Np}
+xGYd n1 n30 nd nd0 gy N={Nd}
+xGYs n2 n10 ns ns0 gy N={Ns}
+*                IF Vc  < fsat   THEN {Cper} ELSE  {reducing Cper}
+Cper n30 n2 c='v(n30)-v(n2) < {5} ? {C} : {0.99*C*exp(-10*(v(n30)-v(n2)))+0.01*C}'
+.ENDS
+*********************************************************************
+*PUSHPULL Xfm
+*       pins     1   2   3   4   5  6
+.SUBCKT tfpush np1 npc np2 ns1 nsc ns2 Np=100 Ns=100 C=100uF
+xGYp1 np1 npc n1 n10 gy N={Np}
+xGYp2 npc np2 n10 n2 gy N={Np}
+xGYs1 n3 n30 ns1 nsc gy N={Ns}
+xGYs2 n30 n2 nsc ns2 gy N={Ns}
+*                IF Vc  < fsat   THEN {Cper} ELSE  {reducing Cper}
+Cper n1 n3 c='v(n1)-v(n3) < {5} ? {C} : {0.99*C*exp(-10*(v(n1)-v(n3)))+0.01*C}'
+.ENDS
+**********************************************************************
+*BRIDGE Xfm
+*       pins     1   2   3   4   5
+.SUBCKT tfbdg np1 np2 ns1 nsc ns2 Np=100 Ns=100 C=100uF
+xGYp  np1 np2 n1 n10 gy N={Np}
+xGYs1 n3 n30 ns1 nsc gy N={Ns}
+xGYs2 n30 n10 nsc ns2 gy N={Ns}
+*                IF Vc  < fsat   THEN {Cper} ELSE  {reducing Cper}
+Cper n1 n3 c='v(n1)-v(n3) < {5} ? {C} : {0.99*C*exp(-10*(v(n1)-v(n3)))+0.01*C}'
+.ENDS
+**********************************************************************
+*-----------------------------------------------------------------
+* PV SOURCE
+*-----------------------------------------------------------------
+* connections:   +ve terminal
+*                | -ve terminal
+*                | | 
+.SUBCKT PVSOURCE 1 2 Isc=1 Vscale=50
+*Setting Isc value
+VIsc nsc 0 {Isc}
+*Setting No. of devices in series 
+Vnum ndev 0 {Vscale}
+*Using PV model eqn. in B-source
+*(nVT)=0.05 -- n=2 and VT=0.025
+*a conditional statement is used. If current flow is negative i.e. PV as sink, then the 
+*current should get limited to 0 and not allow sink current into PV
+Bpv 1 2 i=-(v(nsc)- 1e-7*(exp(v(1,2)/0.05/v(ndev))-1)>0 ? (v(nsc)- 1e-7*(exp(v(1,2)/0.05/v(ndev))-1)) : 0)
+.ENDS
+*--------------------------------------------------------------------------------
+
