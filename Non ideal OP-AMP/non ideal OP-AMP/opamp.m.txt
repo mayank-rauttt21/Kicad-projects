@@ -1,0 +1,16 @@
+% This is a sample m-file to calculate the output voltage of an opamp
+% considering also the effects of non-ideal parameters
+clear
+clc
+
+Gain=1000; % required gain of the amplifier of an ideal opamp
+Av=2e5;    % open loop gain of TL084
+Ib=20e-9;  % Bias current from datasheet
+Vio=10e-6*50; % for 50 deg. C temp swing
+Rid=10e12; % Datasheet value of Rid
+Ro=300;    % Estimated from datasheet values
+vi=1e-3;   % Input voltage of 1mV
+R2=100e3;  %
+
+vo_inv = invamp(-Gain,Av,Ib,Vio,Rid,Ro,R2,vi);
+vo_non_inv = noninvamp(Gain,Av,Ib,Vio,Rid,Ro,R2,vi);
